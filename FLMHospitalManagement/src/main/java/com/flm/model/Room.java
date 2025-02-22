@@ -1,0 +1,41 @@
+package com.flm.model;
+import java.util.List;
+
+
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.Table;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Entity
+@Table(name = "rooms")
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class Room {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long roomId;
+    
+    @Column(name = "room_number" , unique = true , nullable = false)
+    private String roomNumber; // Unique room number (e.g., A101)
+    
+    @Column(name = "room_type" , nullable = false) 
+    private String roomType; // E.g., ICU, General, Private, etc.
+    
+    @Column(nullable = false)
+    private Integer capacity; // Number of beds in the room
+
+    @OneToMany(mappedBy = "room", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Bed> beds; // List of beds in the room
+
+   
+}
