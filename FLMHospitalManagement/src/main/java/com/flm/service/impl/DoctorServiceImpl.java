@@ -29,12 +29,12 @@ public class DoctorServiceImpl implements DoctorService {
     private final Logger logger = LoggerFactory.getLogger(DoctorServiceImpl.class);
 
     @Override
-    public String saveDoctor(RegisterDoctorDTO doctorDto) {
+    public DoctorDetailsDTO saveDoctor(RegisterDoctorDTO doctorDto) {
         try {
             Doctor doctor = DoctorBuilder.buildDoctorFromDTO(doctorDto);
             Doctor savedDoctor = doctorRepository.save(doctor);
             logger.info("Doctor " + Constants.CREATED, savedDoctor.getStaffId());
-            return savedDoctor.getStaffId();
+            return DoctorBuilder.buildDoctorDetailsDTOFromDoctor(savedDoctor);
         } catch (Exception e) {
             logger.error(Constants.ERROR+ " saving doctor: {}", e.getMessage());
             throw new DoctorServiceException(Constants.ERROR+ " saving doctor" + e.getMessage());
@@ -42,16 +42,18 @@ public class DoctorServiceImpl implements DoctorService {
     }
 
     @Override
-    public String updateDoctor(String doctorId, RegisterDoctorDTO doctorDto) {
+    public DoctorDetailsDTO updateDoctor(String doctorId, RegisterDoctorDTO doctorDto) {
         try {
             Optional<Doctor> existingDoctorOpt = doctorRepository.findById(doctorId);
             if (existingDoctorOpt.isPresent()) {
                 Doctor existingDoctor = existingDoctorOpt.get();
                 Doctor updatedDoctor = DoctorBuilder.buildDoctorFromDTO(doctorDto);
+                updatedDoctor.getUser().setPassword(existingDoctor.getUser().getPassword());
                 updatedDoctor.setStaffId(existingDoctor.getStaffId());
                 doctorRepository.save(updatedDoctor);
                 logger.info("Doctor " + Constants.CREATED, doctorId);
-                return doctorId;
+                DoctorDetailsDTO doctorDetailsDTO = DoctorBuilder.buildDoctorDetailsDTOFromDoctor(updatedDoctor);
+                return doctorDetailsDTO;
             } else {
                 logger.warn("Doctor" + Constants.NOT_FOUND, doctorId);
                 throw new DoctorNotFoundException("Doctor" + Constants.NOT_FOUND + doctorId);
@@ -97,11 +99,10 @@ public class DoctorServiceImpl implements DoctorService {
     }
 
     @Override
-    public String deleteDoctor(String doctorId) {
+    public void deleteDoctor(String doctorId) {
         try {
             doctorRepository.deleteById(doctorId);
             logger.info("Doctor deleted with ID: {}", doctorId);
-            return "Doctor deleted successfully";
         } catch (EmptyResultDataAccessException e) {
         	logger.warn("Doctor" + Constants.NOT_FOUND, doctorId);
             throw new DoctorNotFoundException("Doctor" + Constants.NOT_FOUND + doctorId);
