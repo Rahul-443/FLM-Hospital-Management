@@ -2,36 +2,33 @@ package com.flm.dto;
 
 import java.time.LocalDate;
 
-import org.springframework.stereotype.Component;
-
-import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
-import lombok.NoArgsConstructor;
 
-@Component
 @Data
-@NoArgsConstructor
-@AllArgsConstructor
+@Builder
 public class StaffDetailsDTO {
-
-	private String staffId;
-
-	private String firstName;
-
-	private String lastName;
-
-	private String phoneNumber;
-
-	private String email;
-
-	private AddressDTO addressDTO;
-
-	private LocalDate dateOfJoining;
-
-	private double experienceInYears;
-
-	private Boolean isEmployeeActive; 
-
-	private String departmentName;
-
+	
+    private String staffId;
+    
+    private String firstName;
+    
+    private String lastName;
+    
+    private String email;
+    
+    private String phoneNumber;
+    
+    private AddressDTO addressDTO;
+    
+    private String role;
+    
+    private double experienceInYears;
+    
+    private LocalDate dateOfJoining;
+    
+    private boolean isActive;
+    
+    private boolean canLogin;
 }
+

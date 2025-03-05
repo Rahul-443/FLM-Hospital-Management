@@ -43,20 +43,26 @@ public class DoctorController {
 		return new ResponseEntity<DoctorDetailsDTO>(updatedDoctor,HttpStatus.OK);
 	}
 	
-	@GetMapping
+	@GetMapping("/id")
 	public ResponseEntity<DoctorDetailsDTO> getDoctorDetails(@RequestParam(name = "id") String doctorId) {
 		
 		DoctorDetailsDTO doctorDetails = doctorService.getDoctorDetails(doctorId);
 		return new ResponseEntity<DoctorDetailsDTO>(doctorDetails,HttpStatus.OK);
 	}
 	
-	@GetMapping
+	@GetMapping("/all")
 	public ResponseEntity<List<DoctorDetailsDTO>> getAllDcotors() {
 		
 		List<DoctorDetailsDTO> allDoctorsDeatils = doctorService.getAllDoctorsDeatils();
 		return new ResponseEntity<List<DoctorDetailsDTO>>(allDoctorsDeatils,HttpStatus.OK);
 	}
 	
+	@GetMapping("/search")
+	public ResponseEntity<List<DoctorDetailsDTO>> searchDoctorsByName(@RequestParam String name) {
+	    List<DoctorDetailsDTO> doctors = doctorService.getDoctorsByName(name);
+	    return ResponseEntity.ok(doctors);
+	}
+
 	@DeleteMapping("/{id}")
 	public ResponseEntity<Object> deleteDcotor(@PathVariable(name = "id") String doctorId) {
 		

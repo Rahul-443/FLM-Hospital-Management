@@ -15,6 +15,8 @@ public interface DoctorService {
 	
 	public List<DoctorDetailsDTO> getAllDoctorsDeatils();
 	
+	 public List<DoctorDetailsDTO> getDoctorsByName(String name);
+	 
 	public void deleteDoctor(String doctorId);
 
 }

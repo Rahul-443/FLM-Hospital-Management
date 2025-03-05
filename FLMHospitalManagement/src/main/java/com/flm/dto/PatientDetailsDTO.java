@@ -1,18 +1,16 @@
 package com.flm.dto;
 
 import java.time.LocalDate;
-import java.util.List;
-
-import org.springframework.stereotype.Component;
 
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-@Component
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
+@Builder
 public class PatientDetailsDTO {
 	
 	private String patientId;
@@ -30,7 +28,5 @@ public class PatientDetailsDTO {
     private LocalDate dateOfBirth; // Stored in 'YYYY-MM-DD' format.
 
 	private AddressDTO addressDTO;
-
-    private List<AppointmentDTO> appointmentsList;
 
 }

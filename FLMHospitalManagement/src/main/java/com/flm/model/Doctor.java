@@ -11,7 +11,6 @@ import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
 
 @Entity
-@Table(name = "doctors")
 @Inheritance(strategy = InheritanceType.SINGLE_TABLE)
 @Data
 @NoArgsConstructor
@@ -19,7 +18,7 @@ import lombok.experimental.SuperBuilder;
 @SuperBuilder
 public class Doctor extends Staff {
 
-    @Column(name = "specialization", nullable = false)
+    @Column(name = "specialization")
     private String specialization;  // Doctor's specialization
 
     // Additional doctor-specific fields can be added here

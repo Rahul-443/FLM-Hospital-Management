@@ -1,13 +1,11 @@
 package com.flm.service.impl;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.dao.DataAccessException;
 import org.springframework.stereotype.Service;
 
 import com.flm.builder.DoctorBuilder;
@@ -23,10 +21,14 @@ import com.flm.util.Constants;
 @Service
 public class DoctorServiceImpl implements DoctorService {
     
-    @Autowired
+    
     DoctorRepository doctorRepository;
+    
+    public DoctorServiceImpl(DoctorRepository doctorRepository) {
+		this.doctorRepository = doctorRepository;
+	}
 
-    private final Logger logger = LoggerFactory.getLogger(DoctorServiceImpl.class);
+	private final Logger logger = LoggerFactory.getLogger(DoctorServiceImpl.class);
 
     @Override
     public DoctorDetailsDTO saveDoctor(RegisterDoctorDTO doctorDto) {
@@ -44,43 +46,59 @@ public class DoctorServiceImpl implements DoctorService {
     @Override
     public DoctorDetailsDTO updateDoctor(String doctorId, RegisterDoctorDTO doctorDto) {
         try {
-            Optional<Doctor> existingDoctorOpt = doctorRepository.findById(doctorId);
-            if (existingDoctorOpt.isPresent()) {
-                Doctor existingDoctor = existingDoctorOpt.get();
-                Doctor updatedDoctor = DoctorBuilder.buildDoctorFromDTO(doctorDto);
-                updatedDoctor.getUser().setPassword(existingDoctor.getUser().getPassword());
-                updatedDoctor.setStaffId(existingDoctor.getStaffId());
-                doctorRepository.save(updatedDoctor);
-                logger.info("Doctor " + Constants.CREATED, doctorId);
-                DoctorDetailsDTO doctorDetailsDTO = DoctorBuilder.buildDoctorDetailsDTOFromDoctor(updatedDoctor);
-                return doctorDetailsDTO;
-            } else {
-                logger.warn("Doctor" + Constants.NOT_FOUND, doctorId);
-                throw new DoctorNotFoundException("Doctor" + Constants.NOT_FOUND + doctorId);
-            }
-        } catch (Exception e) {
-        	logger.error(Constants.ERROR+ " Updating doctor: {}", e.getMessage());
-            throw new DoctorServiceException(Constants.ERROR+ " Updating doctor" + e.getMessage());
+            Doctor existingDoctor = doctorRepository.findById(doctorId)
+                .orElseThrow(() -> new DoctorNotFoundException("Doctor " + Constants.NOT_FOUND + doctorId));
+            
+            logger.info(Constants.RETRIEVED, "Doctor" ,  doctorId);
+
+            Doctor updatedDoctor = DoctorBuilder.buildDoctorFromDTO(doctorDto);
+
+            // Preserve essential details from the existing doctor
+            updatedDoctor.getUser().setUserId(existingDoctor.getUser().getUserId());
+            updatedDoctor.getUser().setPassword(existingDoctor.getUser().getPassword());
+            updatedDoctor.setStaffId(existingDoctor.getStaffId());
+            updatedDoctor.getAddress().setAddressId(existingDoctor.getAddress().getAddressId());
+
+            doctorRepository.save(updatedDoctor);
+            logger.info("Doctor " + Constants.UPDATED + "{}", doctorId);
+
+            return DoctorBuilder.buildDoctorDetailsDTOFromDoctor(updatedDoctor);
+
+        } catch (DataAccessException e) {  // Catching database-related issues
+            logger.error("{} updating doctor with ID: {} - Exception: {}", Constants.ERROR, doctorId, e.getMessage());
+            throw new DoctorServiceException("Database "+ Constants.ERROR + " updating doctor with ID: " + doctorId);
+        } catch (DoctorNotFoundException e) {
+        	logger.error(e.getMessage());// Letting not found exceptions pass through
+            throw e;
+        } catch (Exception e) { // Catching unexpected errors
+            logger.error("{} updating doctor with ID: {} - Exception - {}", Constants.ERROR, doctorId, e);
+            throw new DoctorServiceException(Constants.ERROR + " updating doctor with ID: " + doctorId);
         }
     }
+
 
     @Override
     public DoctorDetailsDTO getDoctorDetails(String doctorId) {
         try {
-            Optional<Doctor> doctor = doctorRepository.findById(doctorId);
-            if (doctor.isPresent()) {
-                DoctorDetailsDTO doctorDetailsDTO = DoctorBuilder.buildDoctorDetailsDTOFromDoctor(doctor.get());
-                logger.info("Retrieved doctor details for ID: {}", doctorId);
-                return doctorDetailsDTO;
-            } else {
-            	logger.warn("Doctor" + Constants.NOT_FOUND, doctorId);
-                throw new DoctorNotFoundException("Doctor" + Constants.NOT_FOUND + doctorId);
-            }
-        } catch (Exception e) {
-        	logger.error(Constants.ERROR+ " Fetching Doctor deatails with id: {}", doctorId);
-            throw new DoctorServiceException(Constants.ERROR+ " Fetching Doctor deatails with id: "+ doctorId);
+            Doctor doctor = doctorRepository.findById(doctorId)
+                .orElseThrow(() -> new DoctorNotFoundException("Doctor" + Constants.NOT_FOUND+ doctorId));
+
+            logger.info(Constants.RETRIEVED, "Doctor" ,  doctorId);
+            return DoctorBuilder.buildDoctorDetailsDTOFromDoctor(doctor);
+            
+        } catch (DataAccessException e) {  // Catching database-related issues
+            logger.error("{} Error updating doctor with ID: {} - Exception: {}", Constants.ERROR, doctorId, e.getMessage(), e);
+            throw new DoctorServiceException(Constants.ERROR + " Database error while updating doctor with ID: " + doctorId);
+        } 
+        catch (DoctorNotFoundException e) {  // Letting this exception pass through
+            logger.info(e.getMessage());
+        	throw e;
+        } catch (Exception e) { // Catching unexpected exceptions
+            logger.error("{} fetching Doctor details with id: {} - Exception - {}", Constants.ERROR, doctorId, e);
+            throw new DoctorServiceException(Constants.ERROR + " Unexpected error while fetching Doctor details with id: " + doctorId);
         }
     }
+
 
     @Override
     public List<DoctorDetailsDTO> getAllDoctorsDeatils() {
@@ -94,21 +112,56 @@ public class DoctorServiceImpl implements DoctorService {
                     .collect(Collectors.toList());
         } catch (Exception e) {
         	logger.error(Constants.ERROR+ " Fetching All doctors deatails: {}", e.getMessage());
-            throw new DoctorServiceException(Constants.ERROR+ " Fetching All doctors deatails:" + e.getMessage());
+            throw new DoctorServiceException(Constants.ERROR+ " Fetching All doctors deatails: " + e.getMessage());
         }
     }
+    
+    @Override
+    public List<DoctorDetailsDTO> getDoctorsByName(String name) {
+        try {
+            List<Doctor> doctors = doctorRepository.findByFirstNameContainingIgnoreCase(name);
+            if (doctors.isEmpty()) {
+                logger.warn("No doctors found with name containing: {}", name);
+                throw new DoctorNotFoundException("No doctors found with name: " + name);
+            }
+
+            logger.info("Retrieved {} doctors with name containing: {}", doctors.size(), name);
+            return doctors.stream()
+                          .map(DoctorBuilder::buildDoctorDetailsDTOFromDoctor)
+                          .collect(Collectors.toList());
+
+        } catch (DoctorNotFoundException e) {  // Handle specific exception
+            logger.warn("{}", e.getMessage());
+            throw e; 
+
+        } catch (Exception e) {  // Handle other exceptions
+            logger.error("{} retrieving doctors with name: {} - exception - {}", Constants.ERROR, name, e);
+            throw new DoctorServiceException(Constants.ERROR + " retrieving doctors with name: " + name);
+        }
+    }
+
 
     @Override
     public void deleteDoctor(String doctorId) {
         try {
-            doctorRepository.deleteById(doctorId);
-            logger.info("Doctor deleted with ID: {}", doctorId);
-        } catch (EmptyResultDataAccessException e) {
-        	logger.warn("Doctor" + Constants.NOT_FOUND, doctorId);
-            throw new DoctorNotFoundException("Doctor" + Constants.NOT_FOUND + doctorId);
-        } catch (Exception e) {
-        	logger.error(Constants.ERROR+ " Deleting doctor: {}", e.getMessage());
-            throw new DoctorServiceException(Constants.ERROR+ " Deleting doctor" + e.getMessage());
+        	 Doctor doctor = doctorRepository.findById(doctorId)
+                     .orElseThrow(() -> new DoctorNotFoundException("Doctor" + Constants.NOT_FOUND+ doctorId));
+        	 doctor.setIsEmployeeActive(false);
+        	 doctorRepository.save(doctor);
+            logger.info("Doctor deleted successfully with ID: {}", doctorId);
+
+        } catch (DataAccessException e) { // Handling database-related exceptions
+            logger.error("{} doctor with ID: {} - Exception: {}", Constants.ERROR, doctorId, e.getMessage());
+            throw new DoctorServiceException(Constants.ERROR + " deleting doctor with ID: " + doctorId);
+        }
+        catch (DoctorNotFoundException e) {  // Letting this exception pass through
+            logger.info(e.getMessage());
+        	throw e;
+        } 
+        catch (Exception e) { // Catching unexpected errors
+            logger.error("{} deleting doctor with ID: {} - exception - {}", Constants.ERROR, doctorId, e);
+            throw new DoctorServiceException(Constants.ERROR + " deleting doctor with ID: " + doctorId);
         }
     }
+
 }

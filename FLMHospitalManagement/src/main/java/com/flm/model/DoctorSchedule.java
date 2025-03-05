@@ -1,6 +1,6 @@
 package com.flm.model;
 
-import java.time.LocalTime;
+import java.time.LocalDate;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -22,24 +22,14 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class DoctorSchedule {
 
-	@Id
-	@GeneratedValue(strategy = GenerationType.IDENTITY)
-	private Long scheduleId;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
-	@ManyToOne(fetch = FetchType.LAZY)
-	@JoinColumn(name = "doctor_id", nullable = false)
-	private Doctor doctor;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "doctor_id", nullable = false)
+    private Doctor doctor;
 
-	@Column(name = "day_of_week", nullable = false)
-	private String dayOfWeek; 
-	
-	@Column(name = "start_time", nullable = false)
-	private LocalTime startTime; 
-
-	@Column(name = "end_time", nullable = false)
-	private LocalTime endTime; 
-
-	@Column(name = "is_available", nullable = false)
-	private boolean isAvailable;
-
+    @Column(name = "unavailable_date", nullable = false)
+    private LocalDate unavailableDate;
 }

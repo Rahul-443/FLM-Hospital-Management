@@ -58,24 +58,4 @@ public class DoctorBuilder {
                 .build();
     }
     
-    // Convert Doctor Entity to DTO
-  /*  public static RegisterDoctorDTO buildDTOFromDoctor(Doctor doctor) {
-        return RegisterDoctorDTO.builder()
-                .firstName(doctor.getFirstName())
-                .lastName(doctor.getLastName())
-                .phoneNumber(doctor.getPhoneNumber())
-                .dateOfJoining(doctor.getDateOfJoining())
-                .specialization(doctor.get)
-                .experienceInYears(doctor.getExperienceInYears())
-                .email(doctor.getUser().getEmail()) // Get email from associated User entity
-                .addressDTO(AddressDTO.builder()
-                        .street(doctor.getAddress().getStreet())
-                        .landMark(doctor.getAddress().getLandMark())
-                        .city(doctor.getAddress().getCity())
-                        .postalCode(doctor.getAddress().getPostalCode())
-                        .state(doctor.getAddress().getState())
-                        .country(doctor.getAddress().getCountry())
-                        .build())
-                .build(); 
-    } */
 }

@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.ToString;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -11,9 +12,12 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Random;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 @Entity
 @Table(name = "patients")
 @Data
+@ToString(exclude = "appointments")
 @NoArgsConstructor
 @AllArgsConstructor
 public class Patient {
@@ -45,6 +49,7 @@ public class Patient {
 	private Address address;
 
     @OneToMany(mappedBy = "patient", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnore
     private List<Appointment> appointments;
     
     @PrePersist

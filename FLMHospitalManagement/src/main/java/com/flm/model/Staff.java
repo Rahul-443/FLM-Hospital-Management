@@ -7,6 +7,8 @@ import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
+import jakarta.persistence.Inheritance;
+import jakarta.persistence.InheritanceType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.PrePersist;
@@ -16,6 +18,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
 @Entity
+@Inheritance(strategy = InheritanceType.SINGLE_TABLE)
 @Table(name = "staff")
 @Data
 @NoArgsConstructor
@@ -50,9 +53,9 @@ public class Staff {
     private Boolean isEmployeeActive;  // Whether the staff is currently working
 
     @Column(name = "can_login", nullable = false)
-    private Boolean canLogin = false; 
+    private Boolean canLogin; 
 
-    @OneToOne
+    @OneToOne(cascade = CascadeType.ALL)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;  // Link to the User entity (authentication)
 
