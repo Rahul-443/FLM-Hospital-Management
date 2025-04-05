@@ -52,6 +52,7 @@ public class Patient {
     @JsonIgnore
     private List<Appointment> appointments;
     
+    
     @PrePersist
     private void generatePatientId() {
         if (this.patientId == null) {

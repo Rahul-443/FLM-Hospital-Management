@@ -1,21 +1,20 @@
 package com.flm.dto;
 
-import org.springframework.stereotype.Component;
-
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-@Component
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
+@Builder
 public class BedDTO {
 
 	private String bedNumber;
 
 	private Boolean isOccupied;
 
-	private Long roomId; // Associated room for this bed
+	private String roomNumber; // Associated room for this bed
 
 }

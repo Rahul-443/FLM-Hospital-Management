@@ -2,6 +2,8 @@ package com.flm.service.impl;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.List;
+import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -11,16 +13,20 @@ import org.springframework.transaction.annotation.Transactional;
 import com.flm.builder.AppointmentBuilder;
 import com.flm.dao.AppointmentRepository;
 import com.flm.dao.DoctorRepository;
+import com.flm.dao.DoctorScheduleRepository;
 import com.flm.dao.PatientRepository;
 import com.flm.dto.AppointmentDTO;
+import com.flm.dto.RescheduleAppointmentDTO;
 import com.flm.exception.AppointmentAlreadyExistsException;
 import com.flm.exception.AppointmentNotFoundException;
 import com.flm.exception.DoctorNotFoundException;
+import com.flm.exception.DoctorUnavailableException;
 import com.flm.exception.InvalidDateException;
 import com.flm.exception.PatientNotFoundException;
 import com.flm.model.Appointment;
 import com.flm.model.Doctor;
 import com.flm.model.Patient;
+import com.flm.notification.EmailService;
 import com.flm.service.AppointmentService;
 import com.flm.util.Constants;
 
@@ -32,11 +38,15 @@ public class AppointmentServiceImpl implements AppointmentService {
     private final AppointmentRepository appointmentRepository;
     private final DoctorRepository doctorRepository;
     private final PatientRepository patientRepository;
+    private final DoctorScheduleRepository doctorScheduleRepository;
+    private final EmailService emailService;
 
-    public AppointmentServiceImpl(AppointmentRepository appointmentRepository, DoctorRepository doctorRepository, PatientRepository patientRepository) {
+    public AppointmentServiceImpl(AppointmentRepository appointmentRepository, DoctorRepository doctorRepository, PatientRepository patientRepository,DoctorScheduleRepository doctorScheduleRepository,EmailService emailService) {
         this.appointmentRepository = appointmentRepository;
         this.doctorRepository = doctorRepository;
 		this.patientRepository = patientRepository;
+		this.doctorScheduleRepository = doctorScheduleRepository;
+		this.emailService = emailService;
     }
 
     @Transactional
@@ -52,7 +62,14 @@ public class AppointmentServiceImpl implements AppointmentService {
        
 
         if (!doctor.getIsEmployeeActive()) {  
-            throw new DoctorNotFoundException("Doctor is no longer active and cannot take appointments.");
+            throw new DoctorUnavailableException("Doctor is no longer active and cannot take appointments.");
+        }
+        
+        
+        boolean isDateUnAvailable = doctorScheduleRepository.existsByDoctor_StaffIdAndUnavailableDate(doctor.getStaffId(), appointmentDTO.getAppointmentDate());
+        
+        if(isDateUnAvailable) {
+        	throw new DoctorUnavailableException("Doctor is not available on : "+ appointmentDTO.getAppointmentDate());
         }
         
         Patient patient = patientRepository.findById(appointmentDTO.getPatientId())
@@ -70,6 +87,15 @@ public class AppointmentServiceImpl implements AppointmentService {
        
         Appointment savedAppointemnt = appointmentRepository.save(appointment);
         
+		emailService.sendAppointmentConfirmation(
+                patient.getEmail(),
+                patient.getFirstName(),
+                doctor.getFirstName(),
+                appointmentDTO.getAppointmentDate(),
+                appointmentDTO.getStartTime(),
+                appointmentDTO.getEndTime()
+            );
+        
         AppointmentDTO dto = AppointmentBuilder.buildDTOFromAppointment(savedAppointemnt);
 
         logger.info("Successfully booked appointment for patient {} with doctor {} on {} from {} to {}",
@@ -79,13 +105,113 @@ public class AppointmentServiceImpl implements AppointmentService {
     }
     
     @Transactional
+    @Override
+    public AppointmentDTO rescheduleAppointment(String appointmentId, RescheduleAppointmentDTO rescheduleAppointmentDTO) {
+        logger.info("Rescheduling appointment ID: {} to {} from {} to {}", appointmentId, rescheduleAppointmentDTO.getNewDate(), rescheduleAppointmentDTO.getStartTime(), rescheduleAppointmentDTO.getEndTime());
+
+        validateDate(rescheduleAppointmentDTO.getNewDate());
+        
+        validateTime(rescheduleAppointmentDTO.getStartTime(), rescheduleAppointmentDTO.getEndTime());
+
+        Appointment appointment = appointmentRepository.findById(appointmentId)
+                .orElseThrow(() -> new AppointmentNotFoundException("Appointment not found with ID: " + appointmentId));
+
+        Doctor doctor = appointment.getDoctor();
+        Patient patient = appointment.getPatient();
+
+        if (!doctor.getIsEmployeeActive()) {
+            throw new DoctorUnavailableException("Doctor is no longer active and cannot take appointments.");
+        }
+        
+        boolean isDateUnAvailable = doctorScheduleRepository.existsByDoctor_StaffIdAndUnavailableDate(doctor.getStaffId(), rescheduleAppointmentDTO.getNewDate());
+        
+        if(isDateUnAvailable) {
+        	throw new DoctorUnavailableException("Doctor is not available on : "+ rescheduleAppointmentDTO.getNewDate());
+        }
+
+        int count = appointmentRepository.countConflictingAppointments(
+                doctor.getStaffId(), patient.getPatientId(), rescheduleAppointmentDTO.getNewDate(), rescheduleAppointmentDTO.getStartTime(), rescheduleAppointmentDTO.getEndTime());
+
+        if (count > 0) {
+            throw new AppointmentAlreadyExistsException(Constants.APPOINTMENT_EXISTS);
+        }
+
+        appointment.setAppointmentDate(rescheduleAppointmentDTO.getNewDate());
+        appointment.setStartTime(rescheduleAppointmentDTO.getStartTime());
+        appointment.setEndTime(rescheduleAppointmentDTO.getEndTime());
+        appointment.setStatus("SCHEDULED");
+
+        Appointment updatedAppointment = appointmentRepository.save(appointment);
+
+        logger.info("Successfully rescheduled appointment ID: {} to {} from {} to {}", appointmentId,rescheduleAppointmentDTO.getNewDate(), rescheduleAppointmentDTO.getStartTime(), rescheduleAppointmentDTO.getEndTime());
+        return AppointmentBuilder.buildDTOFromAppointment(updatedAppointment);
+    }
+    
+    @Override
+    public AppointmentDTO getAppointmentDetails(String appointmentId) {
+        logger.info("Fetching details for appointment ID: {}", appointmentId);
+
+        Appointment appointment = appointmentRepository.findById(appointmentId)
+                .orElseThrow(() -> new AppointmentNotFoundException("Appointment not found with ID: " + appointmentId));
+
+        return AppointmentBuilder.buildDTOFromAppointment(appointment);
+    }
+    
+    @Override
+    public List<AppointmentDTO> getAllAppointments() {
+        logger.info("Fetching all appointments");
+
+        List<Appointment> appointments = appointmentRepository.findAll();
+        
+        return appointments.stream()
+                .map(AppointmentBuilder::buildDTOFromAppointment)
+                .collect(Collectors.toList());
+    }
+    
+    @Override
+    public List<AppointmentDTO> getFutureAppointmentsByDoctor(String doctorId) {
+        logger.info("Fetching appointments for doctor ID: {}", doctorId);
+
+        Doctor doctor = doctorRepository.findById(doctorId)
+                .orElseThrow(() -> new DoctorNotFoundException("Doctor not found with ID: " + doctorId));
+        
+        if(!doctor.getIsEmployeeActive()) {
+        	throw new DoctorUnavailableException("Doctor is no longer active and cannot take appointments.");
+        }
+
+        List<Appointment> appointments = appointmentRepository.findFutureAppointmentsByDoctorId(doctorId);
+        
+        return appointments.stream()
+                .map(AppointmentBuilder::buildDTOFromAppointment)
+                .collect(Collectors.toList());
+    }
+    
+    @Override
+    public List<AppointmentDTO> getAppointmentsOfDoctorByDate(String doctorId, LocalDate appointmentDate) {
+        logger.info("Fetching appointments for doctor {} on {}", doctorId, appointmentDate);
+        
+        Doctor doctor = doctorRepository.findById(doctorId)
+                .orElseThrow(() -> new DoctorNotFoundException("Doctor not found with ID: " + doctorId));
+        
+        List<Appointment> appointments = appointmentRepository.findByDoctorAndDate(doctor.getStaffId(), appointmentDate);
+
+        if (appointments.isEmpty()) {
+            logger.info("No appointments found for doctor {} on {}", doctorId, appointmentDate);
+        }
+
+        return appointments.stream()
+                .map(AppointmentBuilder::buildDTOFromAppointment)
+                .toList();
+    }
+
+    @Transactional
+    @Override
     public void cancelAppointment(String appointmentId) {
         logger.info("Cancelling appointment with ID: {}", appointmentId);
 
         Appointment appointment = appointmentRepository.findById(appointmentId)
                 .orElseThrow(() -> new AppointmentNotFoundException("Appointment "+ Constants.NOT_FOUND  + appointmentId));
 
-        // Set status to CANCELLED instead of deleting
         appointment.setStatus("CANCELLED");
         appointmentRepository.save(appointment);
 

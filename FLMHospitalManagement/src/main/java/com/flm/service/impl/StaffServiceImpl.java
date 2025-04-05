@@ -1,11 +1,13 @@
 package com.flm.service.impl;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataAccessException;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import com.flm.builder.StaffBuilder;
@@ -14,19 +16,26 @@ import com.flm.dto.RegisterStaffDTO;
 import com.flm.dto.StaffDetailsDTO;
 import com.flm.exception.StaffNotFoundException;
 import com.flm.exception.StaffServiceException;
+import com.flm.model.Address;
 import com.flm.model.Staff;
+import com.flm.model.User;
 import com.flm.service.StaffService;
 import com.flm.util.Constants;
+
+import jakarta.annotation.PostConstruct;
 
 @Service
 public class StaffServiceImpl implements StaffService {
     
     private final StaffRepository staffRepository;
     
+    private final PasswordEncoder passwordEncoder;
+    
     private final Logger logger = LoggerFactory.getLogger(StaffServiceImpl.class);
 
-    public StaffServiceImpl(StaffRepository staffRepository) {
+    public StaffServiceImpl(StaffRepository staffRepository, PasswordEncoder passwordEncoder) {
         this.staffRepository = staffRepository;
+		this.passwordEncoder = passwordEncoder;
     }
 
     @Override
@@ -74,7 +83,7 @@ public class StaffServiceImpl implements StaffService {
             throw new StaffServiceException(Constants.ERROR + " updating staff with ID: " + staffId);
         }
     }
-
+    
     @Override
     public StaffDetailsDTO getStaffDetails(String staffId) {
         try {
@@ -155,6 +164,44 @@ public class StaffServiceImpl implements StaffService {
         } catch (Exception e) {
             logger.error("{} deleting staff with ID: {} - exception - {}", Constants.ERROR, staffId, e);
             throw new StaffServiceException(Constants.ERROR + " deleting staff with ID: " + staffId);
+        }
+    }
+    
+    @PostConstruct
+    public void preloadAdminStaff() {
+        // Check if admin staff already exists by email
+        String adminEmail = "admin@hospital.com";
+        if (staffRepository.findById(adminEmail).isEmpty()) {
+            // Create User
+            User adminUser = new User();
+            adminUser.setEmail(adminEmail);
+            adminUser.setPassword(passwordEncoder.encode("admin123"));
+            adminUser.setRole("ROLE_SUPERADMIN");
+            // Create Address (dummy address)
+            Address adminAddress = new Address();
+            adminAddress.setCity("Admin City");
+            adminAddress.setState("Admin State");
+            adminAddress.setCountry("Admin Country");
+            adminAddress.setPostalCode("000000");
+            adminAddress.setStreet("Admin Street");
+            adminAddress.setLandMark("Admin LandMark");
+
+            // Create Staff
+            Staff adminStaff = new Staff();
+            adminStaff.setFirstName("Admin");
+            adminStaff.setLastName("Staff");
+            adminStaff.setPhoneNumber("1234567890");
+            adminStaff.setAddress(adminAddress);
+            adminStaff.setDateOfJoining(LocalDate.now());
+            adminStaff.setExperienceInYears(00.0);
+            adminStaff.setIsEmployeeActive(true);
+            adminStaff.setCanLogin(true);
+            adminStaff.setUser(adminUser);
+
+            staffRepository.save(adminStaff);
+            logger.info("Admin staff created successfully!");
+        } else {
+        	logger.warn("Admin staff already exists.");
         }
     }
 }

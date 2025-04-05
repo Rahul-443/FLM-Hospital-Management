@@ -16,7 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.flm.service.DoctorScheduleService;
 
 @RestController
-@RequestMapping("/api/v1/doctor-schedule")
+@RequestMapping("/doctor-schedule")
 public class DoctorScheduleController {
 
     private final DoctorScheduleService doctorScheduleService;

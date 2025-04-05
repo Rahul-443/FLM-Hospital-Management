@@ -31,7 +31,7 @@ public class DoctorBuilder {
                 .user(User.builder()
                 		.email(dto.getEmail())
                 		.password(null)
-                		.role("Doctor")
+                		.role("ROLE_DOCTOR")
                 		.build()) // Associate the doctor with a User entity
                 .build();
     }

@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -19,7 +20,7 @@ import com.flm.dto.RegisterDoctorDTO;
 import com.flm.service.DoctorService;
 
 @RestController
-@RequestMapping("/api/v1/doctors")
+@RequestMapping("/doctors")
 public class DoctorController {
 	
 	private final DoctorService doctorService;
@@ -30,6 +31,7 @@ public class DoctorController {
 	}
 
 	@PostMapping
+	@PreAuthorize("hasAnyRole('ADMIN', 'SUPERADMIN')")
 	public ResponseEntity<DoctorDetailsDTO> registerDoctor(@RequestBody RegisterDoctorDTO doctorDto) {
 		
 		DoctorDetailsDTO savedDoctor = doctorService.saveDoctor(doctorDto);
@@ -37,6 +39,7 @@ public class DoctorController {
 	}
 	
 	@PutMapping("/{id}")
+	@PreAuthorize("hasAnyRole('ADMIN', 'SUPERADMIN','Doctor')")
 	public ResponseEntity<DoctorDetailsDTO> updateDoctor(@PathVariable(name = "id") String doctorId , @RequestBody RegisterDoctorDTO doctorDto) {
 		
 		DoctorDetailsDTO updatedDoctor = doctorService.updateDoctor(doctorId, doctorDto);
@@ -44,6 +47,7 @@ public class DoctorController {
 	}
 	
 	@GetMapping("/id")
+	@PreAuthorize("hasAnyRole('ADMIN', 'SUPERADMIN','Doctor')")
 	public ResponseEntity<DoctorDetailsDTO> getDoctorDetails(@RequestParam(name = "id") String doctorId) {
 		
 		DoctorDetailsDTO doctorDetails = doctorService.getDoctorDetails(doctorId);
@@ -51,6 +55,7 @@ public class DoctorController {
 	}
 	
 	@GetMapping("/all")
+	@PreAuthorize("hasAnyRole('ADMIN', 'SUPERADMIN')")
 	public ResponseEntity<List<DoctorDetailsDTO>> getAllDcotors() {
 		
 		List<DoctorDetailsDTO> allDoctorsDeatils = doctorService.getAllDoctorsDeatils();
@@ -58,12 +63,14 @@ public class DoctorController {
 	}
 	
 	@GetMapping("/search")
+	@PreAuthorize("hasAnyRole('ADMIN', 'SUPERADMIN','Doctor')")
 	public ResponseEntity<List<DoctorDetailsDTO>> searchDoctorsByName(@RequestParam String name) {
 	    List<DoctorDetailsDTO> doctors = doctorService.getDoctorsByName(name);
 	    return ResponseEntity.ok(doctors);
 	}
 
 	@DeleteMapping("/{id}")
+	@PreAuthorize("hasAnyRole('ADMIN', 'SUPERADMIN')")
 	public ResponseEntity<Object> deleteDcotor(@PathVariable(name = "id") String doctorId) {
 		
 		doctorService.deleteDoctor(doctorId);

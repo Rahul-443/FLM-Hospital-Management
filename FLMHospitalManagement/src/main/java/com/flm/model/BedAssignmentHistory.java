@@ -24,7 +24,7 @@ public class BedAssignmentHistory {
     private Long id;
 
     @ManyToOne
-    @JoinColumn(name = "bed_id", nullable = false)
+    @JoinColumn(name = "bed_number", nullable = false)
     private Bed bed; 
 
     @ManyToOne
@@ -36,3 +36,4 @@ public class BedAssignmentHistory {
     private LocalDateTime vacatedAt;
 
 }
+

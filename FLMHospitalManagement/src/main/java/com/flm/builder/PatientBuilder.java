@@ -22,6 +22,7 @@ public class PatientBuilder {
                 dto.getDateOfBirth(),
                 Address.builder()
                         .street(dto.getAddressDTO().getStreet())
+                        .landMark(dto.getAddressDTO().getLandMark())
                         .city(dto.getAddressDTO().getCity())
                         .state(dto.getAddressDTO().getState())
                         .postalCode(dto.getAddressDTO().getPostalCode())
@@ -46,6 +47,7 @@ public class PatientBuilder {
                 .addressDTO(
                         AddressDTO.builder()
                                 .street(patient.getAddress().getStreet())
+                                .landMark(patient.getAddress().getLandMark())
                                 .city(patient.getAddress().getCity())
                                 .state(patient.getAddress().getState())
                                 .postalCode(patient.getAddress().getPostalCode())

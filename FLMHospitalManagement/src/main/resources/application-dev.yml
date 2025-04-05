@@ -9,3 +9,22 @@ spring:
     database-platform: org.hibernate.dialect.H2Dialect
     hibernate:
       ddl-auto: update
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: fayaz.sd@frontlinesedutech.com
+    password: psvo eiul ckln qgge
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+logging:
+  file:
+    name: logs/hospital-app.log
+  level:
+    root: INFO
+    
+  
+    
