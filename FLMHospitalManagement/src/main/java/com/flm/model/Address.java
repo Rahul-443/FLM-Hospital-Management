@@ -29,13 +29,13 @@ public class Address {
 	
 	private String landMark;
 	
-	@Column(nullable = true)
+	@Column(nullable = false)
 	private String city;
 	
 	@Column(name = "postal_code" , nullable = false)
 	private String postalCode;
 	
-	@Column(nullable = false)
+	@Column(nullable = true)
 	private String state;
 	
 	@Column(nullable = false)
