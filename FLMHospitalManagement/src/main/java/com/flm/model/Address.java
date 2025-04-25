@@ -29,7 +29,7 @@ public class Address {
 	
 	private String landMark;
 	
-	@Column(nullable = false
+	@Column(nullable = false)
 	private String city;
 	
 	@Column(name = "postal_code" , nullable = false)
